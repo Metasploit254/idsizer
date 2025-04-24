@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kenyan ID Card Printing Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .tool-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        .upload-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        .print-section {
+            flex: 2;
+            min-width: 500px;
+        }
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover {
+            background-color: #f0f8ff;
+        }
+        #fileInputFront, #fileInputBack {
+            display: none;
+        }
+        .preview-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .preview-box {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .preview-img {
+            max-width: 150px;
+            max-height: 100px;
+            margin-bottom: 5px;
+            border-radius: 5mm;
+        }
+        .print-area {
+            border: 1px solid #ddd;
+            padding: 20px;
+            background-color: white;
+            position: relative;
+            margin-bottom: 20px;
+            height: 297mm;
+            width: 210mm;
+            margin: 0 auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm"><rect width="100%" height="100%" fill="white" /></svg>');
+        }
+        .draggable-card {
+            position: absolute;
+            width: 85.6mm;
+            height: 53.98mm;
+            border: 1px solid #ccc;
+            cursor: move;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 3.5mm;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button#savePDF {
+            background-color: #e74c3c;
+        }
+        button#savePDF:hover {
+            background-color: #c0392b;
+        }
+        button#addFront {
+            background-color: #3498db;
+        }
+        button#addBack {
+            background-color: #2ecc71;
+        }
+        button#clearAll {
+            background-color: #95a5a6;
+        }
+        button#autoArrange {
+            background-color: #9b59b6;
+        }
+        .instructions {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .size-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .quantity-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        .quantity-controls label {
+            font-weight: 600;
+        }
+        .quantity-controls input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .size-controls {
+            background-color: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .size-controls label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .size-controls input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                background: white !important;
+            }
+            .draggable-card {
+                border: 1px solid #ccc !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        #hidden-print-container {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="no-print">Kenyan ID Card Printing Tool</h1>
+        
+        <div class="tool-section">
+            <div class="upload-section no-print">
+                <h2>Upload ID Images</h2>
+                
+                <div class="upload-area" id="uploadFront">
+                    <input type="file" id="fileInputFront" accept="image/*">
+                    <p>Click to upload FRONT of ID</p>
+                </div>
+                
+                <div class="upload-area" id="uploadBack">
+                    <input type="file" id="fileInputBack" accept="image/*">
+                    <p>Click to upload BACK of ID</p>
+                </div>
+                
+                <div class="preview-container no-print">
+                    <div class="preview-box">
+                        <div>Front Preview</div>
+                        <img id="frontPreview" class="preview-img" style="display: none;">
+                        <div class="size-info" id="frontSize"></div>
+                    </div>
+                    <div class="preview-box">
+                        <div>Back Preview</div>
+                        <img id="backPreview" class="preview-img" style="display: none;">
+                        <div class="size-info" id="backSize"></div>
+                    </div>
+                </div>
+                
+                <div class="size-controls no-print">
+                    <h3>Card Dimensions (mm)</h3>
+                    <label for="cardWidth">Width:</label>
+                    <input type="number" id="cardWidth" value="85.6" step="0.1" min="10">
+                    
+                    <label for="cardHeight">Height:</label>
+                    <input type="number" id="cardHeight" value="53.98" step="0.1" min="10">
+                    
+                    <label for="cornerRadius">Corner Radius:</label>
+                    <input type="number" id="cornerRadius" value="3.5" step="0.1" min="0">
+                    
+                    <button id="resetSize" style="margin-top: 10px;">Reset to Kenyan ID Size</button>
+                </div>
+                
+                <div class="quantity-controls no-print">
+                    <label for="frontQuantity">Front Copies:</label>
+                    <input type="number" id="frontQuantity" min="1" value="1">
+                    
+                    <label for="backQuantity">Back Copies:</label>
+                    <input type="number" id="backQuantity" min="1" value="1">
+                </div>
+                
+                <div class="controls no-print">
+                    <button id="addFront">Add Front(s)</button>
+                    <button id="addBack">Add Back(s)</button>
+                    <button id="autoArrange">Auto Arrange</button>
+                    <button id="clearAll">Clear All</button>
+                </div>
+            </div>
+            
+            <div class="print-section">
+                <h2 class="no-print">Print Layout (A4 Sheet)</h2>
+                <p class="no-print">Drag cards to position them for printing. Right-click to remove.</p>
+                
+                <div class="print-area" id="printArea"></div>
+                
+                <div class="controls no-print">
+                    <button id="savePDF">Save as PDF</button>
+                    <button id="printNow">Print Now</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions no-print">
+            <h3>How to Use:</h3>
+            <ol>
+                <li>Upload front and back images of your ID card</li>
+                <li>Adjust dimensions if needed (default is Kenyan ID size)</li>
+                <li>Set the number of copies needed for each side</li>
+                <li>Click "Add Front" or "Add Back" to place cards</li>
+                <li>Use "Auto Arrange" for optimal spacing</li>
+                <li>Drag cards to fine-tune positions</li>
+                <li>Right-click to remove cards</li>
+                <li>Save as PDF or print directly</li>
+            </ol>
+            <p><strong>Default Size:</strong> Kenyan ID cards are 85.6mm × 53.98mm with 3.5mm rounded corners.</p>
+        </div>
+    </div>
+
+    <div id="hidden-print-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const { jsPDF } = window.jspdf;
+            
+            // Default Kenyan ID card dimensions in mm
+            const kenyanIdWidth = 85.6;
+            const kenyanIdHeight = 53.98;
+            const kenyanCornerRadius = 3.5;
+            
+            // Current dimensions
+            let cardWidth = kenyanIdWidth;
+            let cardHeight = kenyanIdHeight;
+            let cornerRadius = kenyanCornerRadius;
+            
+            // A4 dimensions in mm
+            const a4Width = 210;
+            const a4Height = 297;
+            
+            // Get elements
+            const uploadFront = document.getElementById('uploadFront');
+            const uploadBack = document.getElementById('uploadBack');
+            const fileInputFront = document.getElementById('fileInputFront');
+            const fileInputBack = document.getElementById('fileInputBack');
+            const frontPreview = document.getElementById('frontPreview');
+            const backPreview = document.getElementById('backPreview');
+            const frontSize = document.getElementById('frontSize');
+            const backSize = document.getElementById('backSize');
+            const printArea = document.getElementById('printArea');
+            const addFrontBtn = document.getElementById('addFront');
+            const addBackBtn = document.getElementById('addBack');
+            const autoArrangeBtn = document.getElementById('autoArrange');
+            const clearAllBtn = document.getElementById('clearAll');
+            const savePDFBtn = document.getElementById('savePDF');
+            const printNowBtn = document.getElementById('printNow');
+            const frontQuantity = document.getElementById('frontQuantity');
+            const backQuantity = document.getElementById('backQuantity');
+            const cardWidthInput = document.getElementById('cardWidth');
+            const cardHeightInput = document.getElementById('cardHeight');
+            const cornerRadiusInput = document.getElementById('cornerRadius');
+            const resetSizeBtn = document.getElementById('resetSize');
+            const hiddenPrintContainer = document.getElementById('hidden-print-container');
+            
+            // Store uploaded images
+            let frontImage = null;
+            let backImage = null;
+            let cardCount = 0;
+            
+            // Initialize size inputs
+            cardWidthInput.value = kenyanIdWidth;
+            cardHeightInput.value = kenyanIdHeight;
+            cornerRadiusInput.value = kenyanCornerRadius;
+            
+            // Set up drag and drop for upload areas
+            setupUploadArea(uploadFront, fileInputFront, 'front');
+            setupUploadArea(uploadBack, fileInputBack, 'back');
+            
+            // Update dimensions when inputs change
+            cardWidthInput.addEventListener('change', updateDimensions);
+            cardHeightInput.addEventListener('change', updateDimensions);
+            cornerRadiusInput.addEventListener('change', updateDimensions);
+            
+            // Reset to Kenyan ID size
+            resetSizeBtn.addEventListener('click', function() {
+                cardWidthInput.value = kenyanIdWidth;
+                cardHeightInput.value = kenyanIdHeight;
+                cornerRadiusInput.value = kenyanCornerRadius;
+                updateDimensions();
+            });
+            
+            function updateDimensions() {
+                cardWidth = parseFloat(cardWidthInput.value) || kenyanIdWidth;
+                cardHeight = parseFloat(cardHeightInput.value) || kenyanIdHeight;
+                cornerRadius = parseFloat(cornerRadiusInput.value) || kenyanCornerRadius;
+                
+                // Update existing cards
+                const cards = document.querySelectorAll('.draggable-card');
+                cards.forEach(card => {
+                    card.style.width = `${cardWidth}mm`;
+                    card.style.height = `${cardHeight}mm`;
+                    card.style.borderRadius = `${cornerRadius}mm`;
+                });
+            }
+            
+            function setupUploadArea(uploadArea, fileInput, type) {
+                uploadArea.addEventListener('click', function() {
+                    fileInput.click();
+                });
+                
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    uploadArea.style.backgroundColor = '#f0f8ff';
+                });
+                
+                uploadArea.addEventListener('dragleave', function() {
+                    uploadArea.style.backgroundColor = '';
+                });
+                
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    uploadArea.style.backgroundColor = '';
+                    
+                    if (e.dataTransfer.files.length) {
+                        fileInput.files = e.dataTransfer.files;
+                        handleFileSelect(fileInput.files[0], type);
+                    }
+                });
+                
+                fileInput.addEventListener('change', function() {
+                    if (fileInput.files.length) {
+                        handleFileSelect(fileInput.files[0], type);
+                    }
+                });
+            }
+            
+            function handleFileSelect(file, type) {
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file.');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    
+                    img.onload = function() {
+                        if (type === 'front') {
+                            frontPreview.src = img.src;
+                            frontPreview.style.display = 'block';
+                            frontSize.textContent = `${img.naturalWidth} × ${img.naturalHeight}px`;
+                            frontImage = img;
+                        } else {
+                            backPreview.src = img.src;
+                            backPreview.style.display = 'block';
+                            backSize.textContent = `${img.naturalWidth} × ${img.naturalHeight}px`;
+                            backImage = img;
+                        }
+                    };
+                };
+                
+                reader.readAsDataURL(file);
+            }
+            
+            // Add cards to print area
+            addFrontBtn.addEventListener('click', function() {
+                if (!frontImage) {
+                    alert('Please upload front image first.');
+                    return;
+                }
+                const quantity = parseInt(frontQuantity.value) || 1;
+                for (let i = 0; i < quantity; i++) {
+                    addCardToPrintArea('front');
+                }
+            });
+            
+            addBackBtn.addEventListener('click', function() {
+                if (!backImage) {
+                    alert('Please upload back image first.');
+                    return;
+                }
+                const quantity = parseInt(backQuantity.value) || 1;
+                for (let i = 0; i < quantity; i++) {
+                    addCardToPrintArea('back');
+                }
+            });
+            
+            function addCardToPrintArea(type) {
+                cardCount++;
+                const card = document.createElement('div');
+                card.className = `draggable-card`;
+                card.id = `card-${cardCount}`;
+                card.dataset.type = type;
+                
+                // Set card dimensions
+                card.style.width = `${cardWidth}mm`;
+                card.style.height = `${cardHeight}mm`;
+                card.style.borderRadius = `${cornerRadius}mm`;
+                
+                // Store background image in CSS variable for print
+                const bgUrl = type === 'front' ? frontImage.src : backImage.src;
+                card.style.setProperty('--card-bg', `url('${bgUrl}')`);
+                card.style.backgroundImage = `url('${bgUrl}')`;
+                
+                // Position cards in a grid pattern initially
+                const cardsPerRow = Math.floor(a4Width / (cardWidth + 5));
+                const row = Math.floor((cardCount - 1) / cardsPerRow);
+                const col = (cardCount - 1) % cardsPerRow;
+                
+                card.style.left = `${10 + col * (cardWidth + 5)}mm`;
+                card.style.top = `${10 + row * (cardHeight + 5)}mm`;
+                
+                // Make card draggable
+                makeDraggable(card);
+                
+                // Right-click to remove
+                card.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    card.remove();
+                    return false;
+                });
+                
+                printArea.appendChild(card);
+            }
+            
+            // Auto-arrange cards in optimal grid
+            autoArrangeBtn.addEventListener('click', function() {
+                const cards = document.querySelectorAll('.draggable-card');
+                if (cards.length === 0) return;
+                
+                // Clear existing positions
+                cards.forEach(card => {
+                    card.style.left = '';
+                    card.style.top = '';
+                });
+                
+                // Calculate optimal grid arrangement
+                const margin = 5; // mm between cards
+                const cardsPerRow = Math.floor(a4Width / (cardWidth + margin));
+                const rowsNeeded = Math.ceil(cards.length / cardsPerRow);
+                
+                // Position each card
+                cards.forEach((card, index) => {
+                    const row = Math.floor(index / cardsPerRow);
+                    const col = index % cardsPerRow;
+                    
+                    // Center the grid on the page
+                    const totalWidth = Math.min(cardsPerRow, cards.length) * (cardWidth + margin) - margin;
+                    const startX = (a4Width - totalWidth) / 2;
+                    
+                    card.style.left = `${startX + col * (cardWidth + margin)}mm`;
+                    card.style.top = `${10 + row * (cardHeight + margin)}mm`;
+                });
+            });
+            
+            function makeDraggable(element) {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                
+                element.onmousedown = dragMouseDown;
+                
+                function dragMouseDown(e) {
+                    e = e || window.event;
+                    e.preventDefault();
+                    
+                    // Get initial mouse position
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                }
+                
+                function elementDrag(e) {
+                    e = e || window.event;
+                    e.preventDefault();
+                    
+                    // Calculate new position
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    
+                    // Convert pixel movement to mm (approximate conversion)
+                    const mmPerPixel = 25.4 / 96;
+                    const currentLeft = parseFloat(element.style.left) || 0;
+                    const currentTop = parseFloat(element.style.top) || 0;
+                    
+                    element.style.left = `${currentLeft - (pos1 * mmPerPixel)}mm`;
+                    element.style.top = `${currentTop - (pos2 * mmPerPixel)}mm`;
+                }
+                
+                function closeDragElement() {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                }
+            }
+            
+            // Clear all cards
+            clearAllBtn.addEventListener('click', function() {
+                printArea.innerHTML = '';
+                cardCount = 0;
+            });
+            
+            // Save as PDF
+            savePDFBtn.addEventListener('click', async function() {
+                const cards = document.querySelectorAll('.draggable-card');
+                if (cards.length === 0) {
+                    alert('No cards to save. Add some cards first.');
+                    return;
+                }
+                
+                // Create a hidden container for printing
+                hiddenPrintContainer.innerHTML = '';
+                const printClone = printArea.cloneNode(true);
+                printClone.style.position = 'absolute';
+                printClone.style.left = '0';
+                printClone.style.top = '0';
+                printClone.style.visibility = 'visible';
+                hiddenPrintContainer.appendChild(printClone);
+                
+                // Convert to image with proper DPI
+                try {
+                    const dataUrl = await domtoimage.toPng(printClone, {
+                        width: printClone.offsetWidth * 2,
+                        height: printClone.offsetHeight * 2,
+                        style: {
+                            transform: 'scale(2)',
+                            transformOrigin: 'top left'
+                        },
+                        quality: 1
+                    });
+                    
+                    // Create a new PDF
+                    const doc = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+                    
+                    // Add image to PDF
+                    doc.addImage(dataUrl, 'PNG', 0, 0, a4Width, a4Height);
+                    
+                    // Save the PDF
+                    doc.save('id-cards.pdf');
+                } catch (error) {
+                    console.error('Error generating PDF:', error);
+                    alert('Error generating PDF. Please try again.');
+                } finally {
+                    hiddenPrintContainer.innerHTML = '';
+                }
+            });
+            
+            // Print now
+            printNowBtn.addEventListener('click', function() {
+                // Create a print-specific version
+                const printClone = printArea.cloneNode(true);
+                printClone.style.position = 'absolute';
+                printClone.style.left = '0';
+                printClone.style.top = '0';
+                printClone.style.visibility = 'visible';
+                hiddenPrintContainer.appendChild(printClone);
+                
+                // Wait for images to load
+                setTimeout(() => {
+                    window.print();
+                    hiddenPrintContainer.innerHTML = '';
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
